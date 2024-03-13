@@ -23,15 +23,58 @@ jobs:
         run: |
           helm repo add jetstack https://charts.jetstack.io
           helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add kong https://charts.konghq.com
           helm repo update
           cd ./charts/cert-manager-init
           helm dependency update
           cd ../canvas-oda
           helm dependency update
+          cd ../api-gateway
+          helm dependency update
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
-        with:
-          charts_dir: ./charts
+      - name: MegaLinter
+        # You can override MegaLinter flavor used to have faster performances
+        # More info at https://megalinter.io/flavors/
+        uses: oxsecurity/megalinter@v7
+
+        id: ml
+        # All available variables are described in documentation
+        # https://megalinter.io/configuration/
         env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+          # Validates all source when push on main, else just the git diff with
+          # main. Override with true if you always want to lint all sources
+          #
+          # To validate the entire codebase, set to:
+          VALIDATE_ALL_CODEBASE: true
+          #
+          # To validate only diff with main, set to:
+          # VALIDATE_ALL_CODEBASE: >-
+          #   ${{
+          #     github.event_name == 'push' &&
+          #     contains(fromJSON('["refs/heads/main", "refs/heads/master"]'), github.ref)
+          #   }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # ADD YOUR CUSTOM ENV VARIABLES HERE OR DEFINE THEM IN A FILE
+          # .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
+
+          # Uncomment to disable copy-paste and spell checks
+          # DISABLE: COPYPASTE,SPELL
+
+      # Upload MegaLinter artifacts
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: MegaLinter reports
+          path: |
+            megalinter-reports
+            mega-linter.log
+
+#      - name: Run chart-releaser
+#        uses: helm/chart-releaser-action@v1.6.0
+#        with:
+#          charts_dir: ./charts
+#        env:
+#          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
