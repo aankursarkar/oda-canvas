@@ -29,7 +29,7 @@ jobs:
           helm dependency update
           cd ../canvas-oda
           helm dependency update
-          cd ../canvas-api-gateway
+          cd ../canvas-api-gateway/combined-api-gateway-chart
           helm dependency update
 
       - name: MegaLinter
